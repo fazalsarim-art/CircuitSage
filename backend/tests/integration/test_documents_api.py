@@ -11,12 +11,14 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text as sqltext
 
+from app.api.deps import get_vector_store
 from app.core.config import get_settings
 from app.db.models.document import Document, IngestionJob
 from app.db.models.enums import JobStatus
 from app.db.session import SessionLocal
 from app.main import create_app
 from app.worker import run_once
+from tests._fakes import FakeEmbedder, make_test_vector_store
 
 PASSWORD = "password12345"
 _PARA = (
@@ -57,7 +59,9 @@ def _make_encrypted_pdf() -> bytes:
 
 @pytest.fixture()
 def client() -> TestClient:
-    return TestClient(create_app())
+    app = create_app()
+    app.dependency_overrides[get_vector_store] = lambda: make_test_vector_store(get_settings())
+    return TestClient(app)
 
 
 @pytest.fixture()
@@ -96,8 +100,10 @@ def _upload(client, headers, pdf_bytes, *, title="Sample Manual", visibility="pr
 
 
 def _process_all(settings):
+    embedder = FakeEmbedder()
+    store = make_test_vector_store(settings)
     with SessionLocal() as db:
-        while run_once(db, settings):
+        while run_once(db, settings, embedder, store):
             pass
 
 

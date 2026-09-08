@@ -1,8 +1,9 @@
-"""Background worker: claims ingestion jobs and processes them.
+"""Background worker: claims ingestion jobs, extracts + chunks PDFs, embeds chunks, and
+upserts vectors to Qdrant.
 
-Jobs are claimed with ``SELECT ... FOR UPDATE SKIP LOCKED`` so multiple workers never
-grab the same job. A job stuck in ``processing`` past the lock timeout (a crashed worker)
-is reclaimable. Failures retry up to ``max_attempts`` before a terminal failure.
+Jobs are claimed with ``SELECT ... FOR UPDATE SKIP LOCKED`` so multiple workers never grab
+the same job. A job stuck in ``processing`` past the lock timeout (a crashed worker) is
+reclaimable. Failures retry up to ``max_attempts`` before a terminal failure.
 """
 
 import logging
@@ -22,6 +23,8 @@ from app.db.models.enums import DocumentStatus, JobStatus
 from app.db.session import SessionLocal
 from app.services.chunking import CHUNKER_VERSION, chunk_pages
 from app.services.documents import extract_pages
+from app.services.embeddings import Embedder, build_embedder
+from app.services.vector_store import VectorStore, build_vector_store
 
 WORKER_ID = f"{socket.gethostname()}-{os.getpid()}"
 LOCK_TIMEOUT = timedelta(minutes=5)
@@ -62,7 +65,13 @@ def claim_job(db: Session) -> IngestionJob | None:
     return job
 
 
-def process_job(db: Session, settings: Settings, job: IngestionJob) -> None:
+def process_job(
+    db: Session,
+    settings: Settings,
+    job: IngestionJob,
+    embedder: Embedder,
+    vector_store: VectorStore,
+) -> None:
     document = db.get(Document, job.document_id)
     if document is None:
         job.status = JobStatus.failed
@@ -74,6 +83,8 @@ def process_job(db: Session, settings: Settings, job: IngestionJob) -> None:
 
     job_id = job.id
     document_id = document.id
+    owner_id = document.owner_id
+    visibility = document.visibility.value
     try:
         document.status = DocumentStatus.processing
         db.flush()
@@ -98,10 +109,39 @@ def process_job(db: Session, settings: Settings, job: IngestionJob) -> None:
                     checksum=draft.checksum,
                 )
             )
+        db.flush()
 
-        document.chunk_count = len(drafts)
+        stored_chunks = list(
+            db.scalars(
+                select(Chunk).where(Chunk.document_id == document_id).order_by(Chunk.ordinal)
+            )
+        )
+        vectors = embedder.embed([chunk.content for chunk in stored_chunks])
+
+        vector_store.ensure_collection(embedder.dimensions)
+        vector_store.delete_by_document(document_id)
+        vector_store.upsert_chunks(
+            [
+                (
+                    chunk.id,
+                    vector,
+                    {
+                        "document_id": str(document_id),
+                        "owner_id": str(owner_id),
+                        "visibility": visibility,
+                        "page_start": chunk.page_start,
+                        "page_end": chunk.page_end,
+                    },
+                )
+                for chunk, vector in zip(stored_chunks, vectors, strict=True)
+            ]
+        )
+
+        document.chunk_count = len(stored_chunks)
         document.parser_version = PARSER_VERSION
         document.chunker_version = CHUNKER_VERSION
+        document.embedding_model = embedder.model
+        document.embedding_dimensions = embedder.dimensions
         document.status = DocumentStatus.indexed
         document.error_code = None
 
@@ -122,9 +162,8 @@ def _fail_or_retry(db: Session, job_id: uuid.UUID, document_id: uuid.UUID, exc: 
     document = db.get(Document, document_id)
     if job is None:
         return
-    detail = str(exc)[:1000]
     job.error_code = "ingestion_failed"
-    job.error_detail = detail
+    job.error_detail = str(exc)[:1000]
     job.locked_by = None
     job.locked_at = None
     if job.attempt >= job.max_attempts:
@@ -141,22 +180,27 @@ def _fail_or_retry(db: Session, job_id: uuid.UUID, document_id: uuid.UUID, exc: 
     _logger.warning("ingestion_failed", extra={"event": "ingestion_failed"})
 
 
-def run_once(db: Session, settings: Settings) -> bool:
+def run_once(
+    db: Session, settings: Settings, embedder: Embedder, vector_store: VectorStore
+) -> bool:
     """Claim and process a single job. Returns True if work was done."""
     job = claim_job(db)
     if job is None:
         return False
-    process_job(db, settings, job)
+    process_job(db, settings, job, embedder, vector_store)
     return True
 
 
 def run() -> None:  # pragma: no cover - long-running loop
     configure_logging()
     settings = get_settings()
+    embedder = build_embedder(settings)
+    vector_store = build_vector_store(settings)
+    vector_store.ensure_collection(settings.embedding_dimensions)
     _logger.info("worker_started", extra={"event": "worker_started"})
     while True:
         with SessionLocal() as db:
-            worked = run_once(db, settings)
+            worked = run_once(db, settings, embedder, vector_store)
         if not worked:
             time.sleep(POLL_INTERVAL_SECONDS)
 

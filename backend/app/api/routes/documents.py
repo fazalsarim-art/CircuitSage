@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy import select, tuple_
 from sqlalchemy.orm import Session
 
-from app.api.deps import AdminUser, CurrentUser
+from app.api.deps import AdminUser, CurrentUser, get_vector_store
 from app.core.config import Settings, get_settings
 from app.core.errors import APIError
 from app.db.models.document import Chunk, Document, IngestionJob
@@ -188,11 +188,16 @@ def reindex_document(
 
 
 @router.delete("/{document_id}", status_code=202, response_model=DocumentDeletedResponse)
-def delete_document(document_id: uuid.UUID, admin: AdminUser, db: DbDep) -> DocumentDeletedResponse:
+def delete_document(
+    document_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbDep,
+    vector_store: Annotated[object, Depends(get_vector_store)],
+) -> DocumentDeletedResponse:
     document = db.get(Document, document_id)
     if document is None:
         raise APIError(404, "not_found", "Document not found.")
-    documents_service.delete_document(db, document)
+    documents_service.delete_document(db, document, vector_store)
     return DocumentDeletedResponse(document_id=document_id, status="deleted")
 
 

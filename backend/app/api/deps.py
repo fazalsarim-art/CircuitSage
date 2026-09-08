@@ -47,3 +47,15 @@ def require_admin(user: CurrentUser) -> User:
 
 
 AdminUser = Annotated[User, Depends(require_admin)]
+
+
+def get_embedder(settings: Annotated[Settings, Depends(get_settings)]):
+    from app.services.embeddings import build_embedder
+
+    return build_embedder(settings)
+
+
+def get_vector_store(settings: Annotated[Settings, Depends(get_settings)]):
+    from app.services.vector_store import build_vector_store
+
+    return build_vector_store(settings)

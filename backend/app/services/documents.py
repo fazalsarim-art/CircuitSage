@@ -180,8 +180,10 @@ def create_reindex_job(db: Session, document: Document) -> IngestionJob:
     return job
 
 
-def delete_document(db: Session, document: Document) -> None:
-    # Cascades remove chunks, ingestion jobs, and the stored source.
+def delete_document(db: Session, document: Document, vector_store=None) -> None:
+    # Remove derived Qdrant points first (best-effort), then the relational rows.
+    if vector_store is not None:
+        vector_store.delete_by_document(document.id)
     db.execute(delete(Chunk).where(Chunk.document_id == document.id))
     db.delete(document)
     db.commit()
