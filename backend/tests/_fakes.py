@@ -35,3 +35,33 @@ class FakeEmbedder:
 
 def make_test_vector_store(settings: Settings) -> VectorStore:
     return build_vector_store(settings, collection=TEST_COLLECTION)
+
+
+class FakeReranker:
+    """Deterministic reranker scoring by query/passage word overlap."""
+
+    def rank(self, query: str, passages: list[str]) -> list[float]:
+        query_words = set(_TOKEN_RE.findall(query.lower()))
+        scores = []
+        for passage in passages:
+            passage_words = _TOKEN_RE.findall(passage.lower())
+            overlap = sum(1 for word in passage_words if word in query_words)
+            scores.append(float(overlap))
+        return scores
+
+
+class FakeAnswerClient:
+    """Returns a fixed answer body, or raises to simulate a model outage."""
+
+    def __init__(self, text: str = "The overrun flag clears on read [C1].", *, fail: bool = False):
+        self.text = text
+        self.fail = fail
+        self.calls: list[list[dict]] = []
+
+    def generate(self, messages: list[dict], model: str):
+        from app.services.answers import AnswerResult
+
+        self.calls.append(messages)
+        if self.fail:
+            raise RuntimeError("simulated model outage")
+        return AnswerResult(text=self.text, input_tokens=11, output_tokens=7)

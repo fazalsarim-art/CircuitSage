@@ -140,9 +140,18 @@ def test_corpus_empty_returns_400(client):
 def test_invalid_mode_returns_422(client, settings, store):
     admin = _headers(client, "admin@example.com", admin=True)
     _ingest(client, admin, settings, store, SPI_TEXT)
-    r = _search(client, admin, "spi", "hybrid")
+    r = _search(client, admin, "spi", "banana")
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "invalid_mode"
+
+
+def test_hybrid_mode_fuses_results(client, settings, store):
+    admin = _headers(client, "admin@example.com", admin=True)
+    _ingest(client, admin, settings, store, SPI_TEXT, title="SPI Manual")
+    r = _search(client, admin, "SPI clock polarity", "hybrid")
+    assert r.status_code == 200
+    assert len(r.json()["hits"]) >= 1
+    assert r.json()["hits"][0]["document_title"] == "SPI Manual"
 
 
 def test_collection_dimension_mismatch_refused(store):

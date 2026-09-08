@@ -59,3 +59,15 @@ def get_vector_store(settings: Annotated[Settings, Depends(get_settings)]):
     from app.services.vector_store import build_vector_store
 
     return build_vector_store(settings)
+
+
+def get_reranker(settings: Annotated[Settings, Depends(get_settings)]):
+    from app.retrieval.reranker import build_reranker
+
+    return build_reranker(settings)
+
+
+def get_answer_client(settings: Annotated[Settings, Depends(get_settings)]):
+    from app.services.answers import build_answer_client
+
+    return build_answer_client(settings)

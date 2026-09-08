@@ -8,9 +8,6 @@ from sqlalchemy.orm import Session
 from app.db.models.document import Chunk, Document
 from app.db.models.enums import DocumentStatus, UserRole, Visibility
 from app.db.models.user import User
-from app.schemas.retrieval import SearchHit
-
-_PREVIEW_CHARS = 500
 
 
 def visibility_clause(user: User) -> ColumnElement[bool] | None:
@@ -20,26 +17,18 @@ def visibility_clause(user: User) -> ColumnElement[bool] | None:
     return (Document.owner_id == user.id) | (Document.visibility == Visibility.shared)
 
 
-def lexical_search(
+def lexical_search_ids(
     db: Session,
     user: User,
     query: str,
-    top_k: int,
+    limit: int,
     document_ids: list[uuid.UUID] | None = None,
-) -> list[SearchHit]:
+) -> list[tuple[uuid.UUID, float]]:
+    """Return ``(chunk_id, ts_rank_cd score)`` ordered best-first."""
     tsquery = func.websearch_to_tsquery("english", query)
-    score = func.ts_rank_cd(Chunk.search_vector, tsquery).label("score")
+    score = func.ts_rank_cd(Chunk.search_vector, tsquery)
     stmt = (
-        select(
-            Chunk.id,
-            Chunk.document_id,
-            Document.title,
-            Chunk.ordinal,
-            Chunk.page_start,
-            Chunk.page_end,
-            Chunk.content,
-            score,
-        )
+        select(Chunk.id, score)
         .join(Document, Document.id == Chunk.document_id)
         .where(
             Chunk.search_vector.op("@@")(tsquery),
@@ -51,18 +40,5 @@ def lexical_search(
         stmt = stmt.where(clause)
     if document_ids:
         stmt = stmt.where(Chunk.document_id.in_(document_ids))
-    stmt = stmt.order_by(score.desc(), Chunk.id).limit(top_k)
-
-    return [
-        SearchHit(
-            chunk_id=row.id,
-            document_id=row.document_id,
-            document_title=row.title,
-            ordinal=row.ordinal,
-            page_start=row.page_start,
-            page_end=row.page_end,
-            score=float(row.score),
-            preview=row.content[:_PREVIEW_CHARS],
-        )
-        for row in db.execute(stmt).all()
-    ]
+    stmt = stmt.order_by(score.desc(), Chunk.id).limit(limit)
+    return [(row[0], float(row[1])) for row in db.execute(stmt).all()]
