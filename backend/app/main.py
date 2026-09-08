@@ -1,8 +1,7 @@
 """FastAPI application factory for CircuitSage.
 
-Phase 1 scope: application factory, typed settings dependency, request-id middleware,
-structured logging, a safe generic error envelope, and the system health/version routes.
-No document or retrieval code yet.
+Provides the application factory, typed settings dependency, request-id middleware,
+structured logging, a stable error envelope, and the system + auth routes.
 """
 
 import logging
@@ -12,10 +11,10 @@ from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
-from app.api.routes import health
+from app.api.routes import auth, health
 from app.core.config import get_settings
+from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging, request_id_ctx
 
 _request_logger = logging.getLogger("app.request")
@@ -63,22 +62,9 @@ def create_app() -> FastAPI:
             )
             request_id_ctx.reset(token)
 
-    @app.exception_handler(Exception)
-    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-        _request_logger.exception("unhandled_error")
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": {
-                    "code": "internal_error",
-                    "message": "An unexpected error occurred.",
-                    "request_id": request_id_ctx.get(),
-                    "details": {},
-                }
-            },
-        )
-
+    register_error_handlers(app)
     app.include_router(health.router)
+    app.include_router(auth.router, prefix="/api/v1")
     return app
 
 
