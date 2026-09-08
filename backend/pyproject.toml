@@ -19,6 +19,9 @@ dependencies = [
     "pyjwt>=2.8",
     "pwdlib[argon2]>=0.2",
     "email-validator>=2.1",
+    "python-multipart>=0.0.9",
+    "pymupdf>=1.24",
+    "tiktoken>=0.7",
 ]
 
 [project.optional-dependencies]

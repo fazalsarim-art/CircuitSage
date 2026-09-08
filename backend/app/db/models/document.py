@@ -11,6 +11,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     text,
@@ -149,3 +150,16 @@ class Chunk(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         CheckConstraint("page_start >= 1", name="page_start_min"),
         CheckConstraint("page_end >= page_start", name="page_end_after_start"),
     )
+
+
+class DocumentSource(CreatedAtMixin, Base):
+    """Raw uploaded PDF bytes, kept in Postgres so the worker (a separate process) can
+    extract them and so a document can be reindexed without object storage."""
+
+    __tablename__ = "document_sources"
+
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True
+    )
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    byte_size: Mapped[int] = mapped_column(Integer, nullable=False)

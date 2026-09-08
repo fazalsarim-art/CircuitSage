@@ -12,7 +12,7 @@ from uuid import uuid4
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, health
+from app.api.routes import auth, documents, health
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging, request_id_ctx
@@ -65,6 +65,8 @@ def create_app() -> FastAPI:
     register_error_handlers(app)
     app.include_router(health.router)
     app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(documents.router, prefix="/api/v1")
+    app.include_router(documents.jobs_router, prefix="/api/v1")
     return app
 
 

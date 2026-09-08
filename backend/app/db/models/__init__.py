@@ -9,7 +9,7 @@ from app.db.models.benchmark import (
     RelevanceJudgment,
 )
 from app.db.models.conversation import Conversation, Message, RetrievalResult
-from app.db.models.document import Chunk, Document, IngestionJob
+from app.db.models.document import Chunk, Document, DocumentSource, IngestionJob
 from app.db.models.feedback import Feedback, FeedbackCorrection
 from app.db.models.user import RefreshToken, User
 
@@ -18,6 +18,7 @@ __all__ = [
     "User",
     "RefreshToken",
     "Document",
+    "DocumentSource",
     "IngestionJob",
     "Chunk",
     "Conversation",
