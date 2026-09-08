@@ -1,0 +1,62 @@
+# ---------------------------------------------------------------------------
+# Environment files & secrets — NEVER commit real ones. Keep .example templates.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+**/.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ---------------------------------------------------------------------------
+# Node / frontend
+# ---------------------------------------------------------------------------
+node_modules/
+**/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# ---------------------------------------------------------------------------
+# Models, caches, local vector/db storage
+# ---------------------------------------------------------------------------
+.cache/
+model_cache/
+.huggingface/
+*.onnx
+
+# ---------------------------------------------------------------------------
+# Data — keep folder structure, ignore actual corpus/uploads
+# ---------------------------------------------------------------------------
+data/sample_docs/*
+!data/sample_docs/.gitkeep
+data/uploads/
+*.pdf.tmp
+tmp/
+temp/
+
+# Build guide / spec (reference only — not part of the application)
+/CircuitSage.pdf
+
+# ---------------------------------------------------------------------------
+# Editors / OS
+# ---------------------------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

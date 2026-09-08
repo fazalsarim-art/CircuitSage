@@ -1,0 +1,22 @@
+# Keep Docker build contexts small and secret-free.
+.git
+.gitignore
+.github
+**/.venv
+**/node_modules
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.coverage
+**/htmlcov
+frontend/dist
+**/.env
+**/.env.*
+!**/.env.example
+data
+docs
+scripts
+*.md
+CircuitSage.pdf
