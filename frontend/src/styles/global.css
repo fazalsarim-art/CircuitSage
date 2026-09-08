@@ -1,0 +1,208 @@
+:root {
+  --bg: #0f1e2e;
+  --surface: #ffffff;
+  --ink: #1a2733;
+  --muted: #5b6b7a;
+  --accent: #0f766e;
+  --border: #d7dee5;
+  --danger: #b42318;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: #eef2f6;
+}
+
+a {
+  color: var(--accent);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.55rem 0.9rem;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Visible keyboard focus everywhere. */
+:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* ---- Auth page ---- */
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 2rem;
+  width: min(360px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.auth-card h1 {
+  font-size: 1.25rem;
+  margin: 0 0 1rem;
+}
+
+.auth-card label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+.auth-card input {
+  padding: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.auth-card button {
+  margin-top: 1rem;
+}
+
+.auth-error {
+  color: var(--danger);
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0;
+}
+
+/* ---- App shell ---- */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--bg);
+  color: #fff;
+  padding: 0.6rem 1rem;
+}
+
+.topbar .brand {
+  font-weight: 700;
+}
+
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.topbar-user {
+  font-size: 0.85rem;
+  color: #cdd8e2;
+}
+
+.topbar .logout {
+  background: transparent;
+  border-color: #cdd8e2;
+}
+
+.nav-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  padding: 0.2rem 0.4rem;
+}
+
+.app-body {
+  flex: 1;
+  display: flex;
+}
+
+.sidebar {
+  width: 200px;
+  background: #f3f6f9;
+  border-right: 1px solid var(--border);
+  padding: 1rem 0.5rem;
+}
+
+.sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar a {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.sidebar a.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.app-content,
+.page {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+.app-loading {
+  padding: 2rem;
+  color: var(--muted);
+}
+
+/* ---- Responsive: below 900px the sidebar becomes a drawer ---- */
+@media (max-width: 900px) {
+  .nav-toggle {
+    display: inline-block;
+  }
+  .sidebar {
+    display: none;
+  }
+  .app-shell.nav-open .sidebar {
+    display: block;
+    width: 100%;
+  }
+  .app-shell.nav-open .app-content {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
