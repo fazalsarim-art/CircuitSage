@@ -7,8 +7,10 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./features/auth/AuthContext";
 import { SignInPage } from "./features/auth/SignInPage";
 import { AskPage } from "./pages/AskPage";
+import { BenchmarkPage } from "./pages/BenchmarkPage";
 import { DocumentsPage } from "./pages/DocumentsPage";
-import { BenchmarkPage, EvalRunsPage, FeedbackPage, SystemPage } from "./pages/placeholders";
+import { EvalRunsPage } from "./pages/EvalRunsPage";
+import { FeedbackPage, SystemPage } from "./pages/placeholders";
 
 function SignInRoute() {
   const { status } = useAuth();

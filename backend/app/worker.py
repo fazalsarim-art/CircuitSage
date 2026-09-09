@@ -183,7 +183,7 @@ def _fail_or_retry(db: Session, job_id: uuid.UUID, document_id: uuid.UUID, exc: 
 def run_once(
     db: Session, settings: Settings, embedder: Embedder, vector_store: VectorStore
 ) -> bool:
-    """Claim and process a single job. Returns True if work was done."""
+    """Claim and process a single ingestion job. Returns True if work was done."""
     job = claim_job(db)
     if job is None:
         return False
@@ -191,16 +191,35 @@ def run_once(
     return True
 
 
+def process_pending_eval(
+    db: Session, settings: Settings, embedder: Embedder, vector_store: VectorStore, reranker
+) -> bool:
+    """Claim and execute a single queued evaluation run. Returns True if work was done."""
+    from app.evals.runner import claim_queued_run, execute_run
+
+    run = claim_queued_run(db)
+    if run is None:
+        return False
+    execute_run(db, settings, run, embedder, vector_store, reranker)
+    return True
+
+
 def run() -> None:  # pragma: no cover - long-running loop
+    from app.retrieval.reranker import build_reranker
+
     configure_logging()
     settings = get_settings()
     embedder = build_embedder(settings)
     vector_store = build_vector_store(settings)
     vector_store.ensure_collection(settings.embedding_dimensions)
+    reranker = build_reranker(settings)
     _logger.info("worker_started", extra={"event": "worker_started"})
     while True:
         with SessionLocal() as db:
             worked = run_once(db, settings, embedder, vector_store)
+        if not worked:
+            with SessionLocal() as db:
+                worked = process_pending_eval(db, settings, embedder, vector_store, reranker)
         if not worked:
             time.sleep(POLL_INTERVAL_SECONDS)
 

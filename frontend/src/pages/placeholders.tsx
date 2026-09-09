@@ -1,4 +1,4 @@
-// Placeholder feature pages. Benchmark/evals arrive in Phase 9, feedback in Phase 10.
+// Placeholder feature pages. Feedback arrives in Phase 10; System later.
 
 function Placeholder({ title, description }: { title: string; description: string }) {
   return (
@@ -9,12 +9,6 @@ function Placeholder({ title, description }: { title: string; description: strin
   );
 }
 
-export const BenchmarkPage = () => (
-  <Placeholder title="Benchmark" description="Benchmark authoring. Coming in Phase 9." />
-);
-export const EvalRunsPage = () => (
-  <Placeholder title="Eval runs" description="Evaluation runs and comparisons. Coming in Phase 9." />
-);
 export const FeedbackPage = () => (
   <Placeholder title="Feedback" description="Feedback review queue. Coming in Phase 10." />
 );

@@ -546,6 +546,18 @@ button.danger {
   background: #dcfce7;
 }
 
+.metrics-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.metrics-grid .trace-table {
+  min-width: 240px;
+  flex: 1 1 240px;
+}
+
 @media (max-width: 768px) {
   .ask-layout {
     grid-template-columns: 1fr;
