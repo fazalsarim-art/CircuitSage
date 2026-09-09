@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 26_214_400
     max_pdf_pages: int = 300
 
+    # Security controls (§7.12)
+    security_headers_enabled: bool = True
+    content_security_policy: str = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+    login_rate_limit: int = 10  # attempts per window, per client IP + email
+    login_rate_window_seconds: int = 60
+
     # Reranker
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 

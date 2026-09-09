@@ -7,6 +7,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -18,6 +19,33 @@ from app.retrieval.pipeline import RetrievalCandidate, run_retrieval
 from app.services.answers import Evidence, generate_answer
 
 _RERANK_MODE = "reranked_hybrid"
+
+
+def queries_used_today(db: Session, user: User) -> int:
+    """Number of questions the user has asked since 00:00 UTC today."""
+    day_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    return (
+        db.scalar(
+            select(func.count(Message.id))
+            .join(Conversation, Conversation.id == Message.conversation_id)
+            .where(
+                Conversation.user_id == user.id,
+                Message.role == MessageRole.user,
+                Message.created_at >= day_start,
+            )
+        )
+        or 0
+    )
+
+
+def assert_within_daily_limit(db: Session, user: User) -> None:
+    """Raise 429 when the user has reached their per-day question quota (§7.12)."""
+    if queries_used_today(db, user) >= user.daily_query_limit:
+        raise APIError(
+            429,
+            "daily_limit_exceeded",
+            "Daily query limit reached. Please try again tomorrow.",
+        )
 
 
 @dataclass

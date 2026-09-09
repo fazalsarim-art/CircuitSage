@@ -6,12 +6,13 @@ Refresh tokens live only in an HttpOnly cookie scoped to the auth path.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, Response
+from fastapi import APIRouter, Cookie, Depends, Request, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
 from app.core.config import Settings, get_settings
 from app.core.errors import APIError
+from app.core.security import normalize_email
 from app.db.models.enums import UserRole
 from app.db.session import get_db
 from app.schemas.auth import (
@@ -63,8 +64,17 @@ def register(payload: RegisterRequest, db: DbDep, settings: SettingsDep) -> User
 
 @router.post("/login", response_model=TokenResponse)
 def login(
-    payload: LoginRequest, response: Response, db: DbDep, settings: SettingsDep
+    payload: LoginRequest, request: Request, response: Response, db: DbDep, settings: SettingsDep
 ) -> TokenResponse:
+    # Throttle brute-force attempts per client IP + email (§7.12).
+    limiter = getattr(request.app.state, "login_limiter", None)
+    if limiter is not None:
+        client_ip = request.client.host if request.client else "unknown"
+        key = f"{client_ip}:{normalize_email(payload.email)}"
+        if not limiter.allow(key):
+            raise APIError(
+                429, "too_many_attempts", "Too many login attempts. Try again shortly."
+            )
     user = auth_service.authenticate(db, payload.email, payload.password)
     if user is None:
         raise APIError(401, "invalid_credentials", "Invalid email or password.")

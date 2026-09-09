@@ -25,15 +25,48 @@ from app.api.routes import (
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging, request_id_ctx
+from app.core.ratelimit import FixedWindowRateLimiter
 
 _request_logger = logging.getLogger("app.request")
+
+# Paths whose responses must not carry the strict API CSP (Swagger/OpenAPI need inline assets).
+_DOCS_PATHS = ("/docs", "/redoc", "/openapi.json")
+
+
+def _apply_security_headers(response: Response, settings, path: str) -> None:
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    response.headers.setdefault(
+        "Permissions-Policy", "geolocation=(), microphone=(), camera=()"
+    )
+    if not path.startswith(_DOCS_PATHS):
+        response.headers.setdefault("Content-Security-Policy", settings.content_security_policy)
+    if settings.is_production:
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=63072000; includeSubDomains"
+        )
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging()
 
-    app = FastAPI(title="CircuitSage API", version=settings.app_version)
+    # Interactive docs are disabled in production to shrink the attack surface.
+    docs_url = None if settings.is_production else "/docs"
+    redoc_url = None if settings.is_production else "/redoc"
+    app = FastAPI(
+        title="CircuitSage API",
+        version=settings.app_version,
+        docs_url=docs_url,
+        redoc_url=redoc_url,
+    )
+
+    # Per-app rate limiter for auth attempts (isolated per instance and per test).
+    app.state.login_limiter = FixedWindowRateLimiter(
+        max_events=settings.login_rate_limit, window_seconds=settings.login_rate_window_seconds
+    )
 
     app.add_middleware(
         CORSMiddleware,
@@ -56,6 +89,8 @@ def create_app() -> FastAPI:
             response = await call_next(request)
             status_code = response.status_code
             response.headers["X-Request-ID"] = request_id
+            if settings.security_headers_enabled:
+                _apply_security_headers(response, settings, request.url.path)
             return response
         finally:
             duration_ms = round((time.perf_counter() - start) * 1000, 2)

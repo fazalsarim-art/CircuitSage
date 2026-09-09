@@ -119,6 +119,7 @@ def create_message(
     conversation = _owned_conversation(db, user, conversation_id)
     if payload.retrieval_mode not in ("lexical", "dense", "hybrid", "reranked_hybrid"):
         raise APIError(422, "invalid_mode", "Unknown retrieval mode.")
+    rag.assert_within_daily_limit(db, user)  # per-user query quota (§7.12)
     if not _corpus_ready(db, user):
         raise APIError(409, "corpus_not_ready", "No indexed documents are available.")
 

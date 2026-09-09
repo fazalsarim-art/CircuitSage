@@ -147,3 +147,13 @@ python scripts/export_benchmark.py --version-id <uuid> --out data/eval/labelled.
   number can always be traced back to the cases that produced it.
 - Without an OpenAI key, `lexical` still runs; `dense`/`hybrid` degrade to a 503 for the dense
   leg — evaluate `lexical` offline, the full matrix with a key.
+
+## Operational safety (does not affect metrics)
+
+Evaluation is deterministic and independent of the runtime security controls added in phase 11.
+The per-user daily query quota and login throttling apply to the interactive `/conversations`
+and `/auth` endpoints only; eval runs are executed by an admin over the whole corpus and are not
+rate-limited, so metrics are unchanged. Security headers, the safe error envelope, and
+dependency-degradation behavior are documented in [`SECURITY.md`](../SECURITY.md) and
+[`docs/threat-model.md`](threat-model.md). `scripts/smoke_test.sh` runs a secret-pattern scan
+plus an optional API health and latency sample.
