@@ -148,6 +148,37 @@ python scripts/export_benchmark.py --version-id <uuid> --out data/eval/labelled.
 - Without an OpenAI key, `lexical` still runs; `dense`/`hybrid` degrade to a 503 for the dense
   leg — evaluate `lexical` offline, the full matrix with a key.
 
+## Results & recorded evidence
+
+**No production benchmark run has been recorded yet, so this report quotes no scores.** That is
+deliberate, not an omission: relevance judgments reference database-generated chunk IDs, so a
+meaningful benchmark only exists after (a) ingesting a real corpus and (b) an admin labelling the
+relevant chunks per question. Publishing invented Hit@k/nDCG figures would misrepresent the
+project.
+
+What *is* verified today:
+
+- The metric functions are correct — `tests/unit/test_eval_metrics.py` checks Hit@k, Recall@k,
+  MRR@10, and nDCG@10 against hand calculations.
+- The end-to-end run path works — integration tests execute a run over a published (fixture)
+  benchmark and assert the stored per-case and aggregate metrics. These use a deterministic
+  `FakeEmbedder` on a single synthetic case, so their `1.0` values are a **plumbing sanity
+  check, not a measurement** of retrieval quality.
+
+To produce and record real results (the numbers a reviewer should ask for):
+
+```bash
+# after ingesting a corpus, importing the seed, labelling judgments, and publishing a version
+python -m app.cli eval-run --benchmark-version-id <id> --mode lexical
+python -m app.cli eval-run --benchmark-version-id <id> --mode dense
+python -m app.cli eval-run --benchmark-version-id <id> --mode hybrid
+# export a completed run's per-case results + aggregates as the evidence artifact
+curl -s http://localhost:8000/api/v1/evals/runs/<run-id>/export -H "Authorization: Bearer <token>"
+```
+
+Paste the exported aggregate block here once a run exists; every figure in this report must
+trace to such an exported run.
+
 ## Operational safety (does not affect metrics)
 
 Evaluation is deterministic and independent of the runtime security controls added in phase 11.

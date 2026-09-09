@@ -198,6 +198,23 @@ AGENTS.md      contributor & workflow guide
 SECURITY.md    security controls & reporting
 ```
 
+## Documentation
+
+| Doc | What it covers |
+|-----|----------------|
+| [docs/architecture.md](docs/architecture.md) | Design decisions and their rationale, grounded in the code. |
+| [docs/evaluation-report.md](docs/evaluation-report.md) | The benchmark, metrics, how to run an evaluation, and what evidence exists. |
+| [docs/demo.md](docs/demo.md) | Clean-install steps and a ~2-minute walkthrough script. |
+| [docs/interview-qa.md](docs/interview-qa.md) | Q&A about the build + truthful résumé bullets. |
+| [docs/deployment-checklist.md](docs/deployment-checklist.md) | Render + Qdrant Cloud deploy steps, env-var reference, caveats. |
+| [docs/threat-model.md](docs/threat-model.md) | STRIDE analysis and dependency findings. |
+| [docs/screenshots/](docs/screenshots/README.md) | Screenshot plan for the UI. |
+| [SECURITY.md](SECURITY.md) | Security controls and reporting. |
+
+> **On metrics:** this project intentionally quotes no headline retrieval scores. A meaningful
+> benchmark requires labelling judgments against an ingested corpus; the harness produces the
+> numbers, and any figure must trace to an exported eval run. See the evaluation report.
+
 ## Security
 
 Secrets are never committed — every value in a tracked file is a placeholder, and runtime
