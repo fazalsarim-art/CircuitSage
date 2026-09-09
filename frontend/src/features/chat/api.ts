@@ -30,9 +30,24 @@ export function getRetrievalTrace(messageId: string) {
   return apiJson<RetrievalTrace>(`/messages/${messageId}/retrieval`);
 }
 
-export function submitFeedback(messageId: string, rating: 0 | 1) {
+export function submitFeedback(
+  messageId: string,
+  rating: 0 | 1,
+  extra: { reason?: string; comment?: string } = {},
+) {
   return apiJson<unknown>(`/messages/${messageId}/feedback`, {
     method: "PUT",
-    body: JSON.stringify({ rating }),
+    body: JSON.stringify({ rating, ...extra }),
   });
 }
+
+export const FEEDBACK_REASONS = [
+  "retrieval_miss",
+  "ranking_error",
+  "chunking_error",
+  "unsupported_answer",
+  "citation_error",
+  "source_gap",
+  "user_expectation",
+  "other",
+] as const;

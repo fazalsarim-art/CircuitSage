@@ -10,7 +10,8 @@ import { AskPage } from "./pages/AskPage";
 import { BenchmarkPage } from "./pages/BenchmarkPage";
 import { DocumentsPage } from "./pages/DocumentsPage";
 import { EvalRunsPage } from "./pages/EvalRunsPage";
-import { FeedbackPage, SystemPage } from "./pages/placeholders";
+import { FeedbackPage } from "./pages/FeedbackPage";
+import { SystemPage } from "./pages/placeholders";
 
 function SignInRoute() {
   const { status } = useAuth();

@@ -10,7 +10,7 @@ from app.db.models.benchmark import (
 )
 from app.db.models.conversation import Conversation, Message, RetrievalResult
 from app.db.models.document import Chunk, Document, DocumentSource, IngestionJob
-from app.db.models.feedback import Feedback, FeedbackCorrection
+from app.db.models.feedback import Feedback, FeedbackCorrection, FeedbackEvent
 from app.db.models.user import RefreshToken, User
 
 __all__ = [
@@ -26,6 +26,7 @@ __all__ = [
     "RetrievalResult",
     "Feedback",
     "FeedbackCorrection",
+    "FeedbackEvent",
     "BenchmarkVersion",
     "BenchmarkCase",
     "RelevanceJudgment",

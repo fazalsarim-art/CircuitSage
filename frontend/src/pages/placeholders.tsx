@@ -1,4 +1,4 @@
-// Placeholder feature pages. Feedback arrives in Phase 10; System later.
+// Placeholder feature pages. System page arrives in a later phase.
 
 function Placeholder({ title, description }: { title: string; description: string }) {
   return (
@@ -9,9 +9,6 @@ function Placeholder({ title, description }: { title: string; description: strin
   );
 }
 
-export const FeedbackPage = () => (
-  <Placeholder title="Feedback" description="Feedback review queue. Coming in Phase 10." />
-);
 export const SystemPage = () => (
   <Placeholder title="System" description="Runtime configuration and health. Coming later." />
 );

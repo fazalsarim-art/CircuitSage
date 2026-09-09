@@ -12,7 +12,16 @@ from uuid import uuid4
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, benchmark, chat, documents, evals, health, retrieval
+from app.api.routes import (
+    auth,
+    benchmark,
+    chat,
+    documents,
+    evals,
+    feedback,
+    health,
+    retrieval,
+)
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging, request_id_ctx
@@ -72,6 +81,8 @@ def create_app() -> FastAPI:
     app.include_router(chat.messages_router, prefix="/api/v1")
     app.include_router(benchmark.router, prefix="/api/v1")
     app.include_router(evals.router, prefix="/api/v1")
+    app.include_router(feedback.router, prefix="/api/v1")
+    app.include_router(feedback.messages_router, prefix="/api/v1")
     return app
 
 
