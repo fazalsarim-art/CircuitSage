@@ -1,0 +1,10 @@
+# Keep the frontend build context small and secret-free.
+node_modules
+dist
+.env
+.env.*
+!.env.example
+coverage
+playwright-report
+test-results
+*.md

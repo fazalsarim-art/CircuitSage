@@ -1,6 +1,26 @@
-# CircuitSage — local development services (PostgreSQL + Qdrant)
-# Dev-only credentials. Do NOT reuse these in production.
+# CircuitSage — local services and optional full stack.
+#
+#   docker compose up -d                 # infra only (PostgreSQL + Qdrant) for local dev
+#   docker compose --profile app up --build   # full stack: migrate -> api + worker + web
+#
+# Credentials here are DEV placeholders. Real secrets come from the host environment
+# (e.g. JWT_SECRET, OPENAI_API_KEY) and are never committed. Do NOT reuse these in production.
 name: circuitsage
+
+# Shared backend runtime environment (api, worker, and the migrate one-shot).
+x-backend-env: &backend-env
+  APP_ENV: production
+  DATABASE_URL: postgresql+psycopg://circuitsage:change_me@postgres:5432/circuitsage
+  QDRANT_URL: http://qdrant:6333
+  QDRANT_API_KEY: ""
+  QDRANT_COLLECTION: circuitsage_chunks_v1
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-placeholder}
+  OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-5.6-luna}
+  OPENAI_EMBEDDING_MODEL: text-embedding-3-small
+  EMBEDDING_DIMENSIONS: "1536"
+  JWT_SECRET: ${JWT_SECRET:-dev_insecure_jwt_secret_change_me_32bytes}
+  FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:8080}
+  ALLOW_REGISTRATION: "true"
 
 services:
   postgres:
@@ -39,6 +59,69 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+    restart: unless-stopped
+
+  # One-shot database migration; api/worker wait for it to finish successfully.
+  migrate:
+    profiles: ["app"]
+    build: ./backend
+    image: circuitsage-backend:local
+    command: ["alembic", "-c", "alembic.ini", "upgrade", "head"]
+    environment: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    profiles: ["app"]
+    build: ./backend
+    image: circuitsage-backend:local
+    environment: *backend-env
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  worker:
+    profiles: ["app"]
+    build: ./backend
+    image: circuitsage-backend:local
+    command: ["python", "-m", "app.worker"]
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      qdrant:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    profiles: ["app"]
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api/v1
+    image: circuitsage-frontend:local
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
