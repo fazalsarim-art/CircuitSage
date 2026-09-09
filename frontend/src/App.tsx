@@ -6,14 +6,9 @@ import { NotFoundPage } from "./components/NotFoundPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./features/auth/AuthContext";
 import { SignInPage } from "./features/auth/SignInPage";
-import {
-  AskPage,
-  BenchmarkPage,
-  DocumentsPage,
-  EvalRunsPage,
-  FeedbackPage,
-  SystemPage,
-} from "./pages/placeholders";
+import { AskPage } from "./pages/AskPage";
+import { DocumentsPage } from "./pages/DocumentsPage";
+import { BenchmarkPage, EvalRunsPage, FeedbackPage, SystemPage } from "./pages/placeholders";
 
 function SignInRoute() {
   const { status } = useAuth();

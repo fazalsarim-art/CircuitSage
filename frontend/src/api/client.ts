@@ -50,7 +50,9 @@ export async function apiFetch(
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
-  if (options.body !== undefined && !headers.has("Content-Type")) {
+  // Only set JSON content-type for string bodies; let the browser set the multipart
+  // boundary for FormData uploads.
+  if (typeof options.body === "string" && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 

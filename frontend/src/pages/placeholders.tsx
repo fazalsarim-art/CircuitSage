@@ -1,5 +1,4 @@
-// Placeholder feature pages. Real Ask/Documents UIs arrive in Phase 8, benchmark/evals in
-// Phase 9, feedback in Phase 10.
+// Placeholder feature pages. Benchmark/evals arrive in Phase 9, feedback in Phase 10.
 
 function Placeholder({ title, description }: { title: string; description: string }) {
   return (
@@ -10,12 +9,6 @@ function Placeholder({ title, description }: { title: string; description: strin
   );
 }
 
-export const AskPage = () => (
-  <Placeholder title="Ask" description="Ask a grounded debugging question. Coming in Phase 8." />
-);
-export const DocumentsPage = () => (
-  <Placeholder title="Documents" description="Manage the document corpus. Coming in Phase 8." />
-);
 export const BenchmarkPage = () => (
   <Placeholder title="Benchmark" description="Benchmark authoring. Coming in Phase 9." />
 );
