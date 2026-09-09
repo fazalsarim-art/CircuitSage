@@ -39,6 +39,21 @@ RUN useradd --create-home --uid 10001 appuser
 
 COPY --from=builder /opt/venv /opt/venv
 
+# Entrypoint normalizes a bare postgres:// / postgresql:// DATABASE_URL (as provided by managed
+# hosts such as Render) to the +psycopg dialect this app's engine expects, then execs the CMD.
+# It is a no-op for an already-correct URL (e.g. the compose value), so it is safe everywhere.
+RUN printf '%s\n' \
+    '#!/bin/sh' \
+    'set -e' \
+    'case "${DATABASE_URL:-}" in' \
+    '  postgresql+*) : ;;' \
+    '  postgresql://*) export DATABASE_URL="postgresql+psycopg://${DATABASE_URL#postgresql://}" ;;' \
+    '  postgres://*)   export DATABASE_URL="postgresql+psycopg://${DATABASE_URL#postgres://}" ;;' \
+    'esac' \
+    'exec "$@"' \
+    > /usr/local/bin/entrypoint.sh \
+    && chmod +x /usr/local/bin/entrypoint.sh
+
 WORKDIR /app
 COPY --chown=appuser:appuser app ./app
 COPY --chown=appuser:appuser alembic ./alembic
@@ -47,5 +62,6 @@ COPY --chown=appuser:appuser alembic.ini pyproject.toml ./
 USER appuser
 EXPOSE 8000
 
-# Overridden by the worker service in compose (python -m app.worker).
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# Overridden by the worker (python -m app.worker) and by the migrate/preDeploy command.
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

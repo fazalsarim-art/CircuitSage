@@ -6,11 +6,13 @@
 #   scripts/smoke_test.sh                 # secret scan; health+perf if localhost:8000 is up
 #   API_BASE_URL=http://host:8000 scripts/smoke_test.sh
 #   PERF_SAMPLES=50 PERF_P95_BUDGET_MS=500 scripts/smoke_test.sh
+#   PROD=1 API_BASE_URL=https://circuitsage-api.onrender.com scripts/smoke_test.sh   # post-deploy
 set -uo pipefail
 
 API_BASE_URL="${API_BASE_URL:-http://localhost:8000}"
 PERF_SAMPLES="${PERF_SAMPLES:-20}"
 PERF_P95_BUDGET_MS="${PERF_P95_BUDGET_MS:-750}"
+PROD="${PROD:-0}"   # PROD=1 treats a non-ready dependency check as a failure (post-deploy)
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT"
 
@@ -51,6 +53,18 @@ if ! curl -fsS -m 3 "$API_BASE_URL/health/live" >/dev/null 2>&1; then
   echo "SKIP: API not reachable at $API_BASE_URL (start uvicorn to include health + perf)."
 else
   echo "OK: $API_BASE_URL/health/live responded."
+
+  # Post-deploy readiness: /health/ready reports dependency status (DB + Qdrant). In
+  # production it must be 200; a 503 means a dependency is down.
+  section "Readiness & version"
+  ready_code="$(curl -s -o /dev/null -w '%{http_code}' -m 5 "$API_BASE_URL/health/ready" 2>/dev/null || echo 000)"
+  echo "GET /health/ready -> $ready_code"
+  if [ "$PROD" = "1" ] && [ "$ready_code" != "200" ]; then
+    echo "FAIL: dependencies not ready in production mode."
+    fail=1
+  fi
+  version_json="$(curl -fsS -m 5 "$API_BASE_URL/version" 2>/dev/null || echo '')"
+  echo "GET /version -> ${version_json:-<none>}"
 
   section "Performance sample (/health/live x $PERF_SAMPLES)"
   times_ms=()
