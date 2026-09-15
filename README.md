@@ -3,6 +3,13 @@
 > An embedded-systems documentation assistant (RAG) with a **self-built retrieval
 > benchmark**, an **evaluation harness**, and a **human feedback loop**.
 
+[![CI](https://github.com/fazalsarim-art/CircuitSage/actions/workflows/ci.yml/badge.svg)](https://github.com/fazalsarim-art/CircuitSage/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white)
+![Qdrant](https://img.shields.io/badge/Qdrant-1.18-DC244C)
+
 CircuitSage answers practical embedded-systems debugging questions (e.g. *"which register
 selects the SPI clock polarity?"*) by retrieving passages from a controlled document
 collection and generating an answer that **cites its evidence** — or honestly reports
@@ -40,28 +47,14 @@ benchmark and repeatable metrics comparing lexical, dense, hybrid, and reranked 
 
 ## Architecture
 
-```
-                 ┌──────────────┐        ┌──────────────────────────┐
-Browser ──HTTP──▶│  web (nginx) │──/api─▶│  api (FastAPI)           │
-                 │  React SPA   │        │  auth · docs · chat ·    │
-                 └──────────────┘        │  benchmark · evals ·     │
-                                         │  feedback                │
-                                         └───────┬───────────┬──────┘
-                                                 │           │
-                                   source of truth│           │derived vectors
-                                                 ▼           ▼
-                                         ┌────────────┐  ┌──────────┐
-                                         │ PostgreSQL │  │  Qdrant  │
-                                         │  + FTS     │  │  cosine  │
-                                         └────────────┘  └──────────┘
-                                                 ▲
-                              ingestion / eval    │
-                                         ┌────────┴────────┐
-                                         │  worker         │
-                                         │  (PDF→chunks→   │
-                                         │   embeddings;   │
-                                         │   eval runs)    │
-                                         └─────────────────┘
+```mermaid
+flowchart LR
+    browser["Browser<br/>React SPA"] -->|HTTPS /api| api["API (FastAPI)<br/>auth, chat, benchmark, evals, feedback"]
+    api -->|source of truth| pg[("PostgreSQL<br/>+ full-text search")]
+    api -->|dense vectors| qd[("Qdrant<br/>cosine")]
+    worker["Worker<br/>ingest PDFs, run evals"] -->|chunks| pg
+    worker -->|embeddings| qd
+    pg -.rebuildable index.-> qd
 ```
 
 PostgreSQL is the source of truth; a Qdrant point is a rebuildable copy of one chunk embedding
